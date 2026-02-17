@@ -6,7 +6,9 @@ const EnvSchema = z.object({
   MODEL: z.string().default("gpt-4.1-mini"),
   PORT: z.coerce.number().default(8787),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  TOOL_POLICY_MODE: z.enum(["allow_all", "safe_only"]).default("safe_only")
+  TOOL_POLICY_MODE: z.enum(["allow_all", "safe_only"]).default("safe_only"),
+  MEMORY_BACKEND: z.enum(["local", "letta"]).default("local"),
+  RAG_BACKEND: z.enum(["none", "llamaindex"]).default("none")
 });
 
 const parsed = EnvSchema.safeParse(process.env);

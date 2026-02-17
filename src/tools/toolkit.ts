@@ -1,12 +1,12 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import type { MemoryManager } from "../memory/memory-manager.js";
+import type { MemoryProvider } from "../memory/provider.js";
 import type { SessionManager } from "../session/session-manager.js";
 
 export function buildToolkit(params: {
   userId: string;
   sessionId: string;
-  memory: MemoryManager;
+  memory: MemoryProvider;
   sessions: SessionManager;
 }) {
   const { userId, sessionId, memory, sessions } = params;

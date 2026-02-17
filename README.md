@@ -7,6 +7,8 @@ Reusable AI Agent infrastructure for multi-project use.
 - **Fast memory** (in-memory cache of latest memory items)
 - **Session per user** (persistent session history)
 - **Context management** (recent context window)
+- **Pluggable memory backend** (`local` / `letta`)
+- **Pluggable RAG backend** (`none` / `llamaindex`)
 - **Structured tools + tool-calling**
 - **Tool policy guardrail** (`safe_only` / `allow_all`)
 - **Tool audit log** for observability
@@ -69,6 +71,12 @@ src/
 - `TOOL_POLICY_MODE=safe_only` allows only vetted tools.
 - `TOOL_POLICY_MODE=allow_all` allows all registered tools.
 - Tool calls are logged to `src/data/tool-audit.json`.
+
+## Backend Switches
+- `MEMORY_BACKEND=local|letta`
+- `RAG_BACKEND=none|llamaindex`
+
+> Current `letta` and `llamaindex` modules are scaffolds/adapters ready for SDK wiring.
 
 ## Production Upgrade Path
 - Replace JSON store with Postgres/Redis

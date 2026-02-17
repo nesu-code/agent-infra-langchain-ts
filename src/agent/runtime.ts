@@ -1,11 +1,12 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { env } from "../config/env.js";
-import type { MemoryManager } from "../memory/memory-manager.js";
+import type { MemoryProvider } from "../memory/provider.js";
 import type { SessionManager } from "../session/session-manager.js";
 import { buildToolkit } from "../tools/toolkit.js";
 import { appendToolAudit } from "../tools/audit.js";
 import { deniedToolMessage, isToolAllowed } from "../tools/policy.js";
+import type { RetrieverProvider } from "./retriever-provider.js";
 
 const SYSTEM_PROMPT = `You are an infra AI agent.
 Rules:
@@ -24,8 +25,9 @@ export class AgentRuntime {
   });
 
   constructor(
-    private readonly memory: MemoryManager,
-    private readonly sessions: SessionManager
+    private readonly memory: MemoryProvider,
+    private readonly sessions: SessionManager,
+    private readonly retriever: RetrieverProvider
   ) {}
 
   async chat(input: { userId: string; sessionId?: string; message: string }) {
@@ -41,9 +43,19 @@ export class AgentRuntime {
     const model = this.model.bindTools(toolkit);
 
     const recentContext = this.sessions.getRecentContext(session.id, 10);
+    const retrieved = await this.retriever.retrieve(input.userId, input.message, 4);
 
     const messages = [
       new SystemMessage(SYSTEM_PROMPT),
+      ...(retrieved.length
+        ? [
+            new SystemMessage(
+              `Retrieved knowledge:\n${retrieved
+                .map((x, i) => `${i + 1}. (${x.score.toFixed(2)}) ${x.content}`)
+                .join("\n")}`
+            )
+          ]
+        : []),
       ...recentContext.map((m) => (m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content))),
       new HumanMessage(input.message)
     ];
