@@ -5,7 +5,8 @@ const EnvSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   MODEL: z.string().default("gpt-4.1-mini"),
   PORT: z.coerce.number().default(8787),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development")
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  TOOL_POLICY_MODE: z.enum(["allow_all", "safe_only"]).default("safe_only")
 });
 
 const parsed = EnvSchema.safeParse(process.env);

@@ -8,6 +8,8 @@ Reusable AI Agent infrastructure for multi-project use.
 - **Session per user** (persistent session history)
 - **Context management** (recent context window)
 - **Structured tools + tool-calling**
+- **Tool policy guardrail** (`safe_only` / `allow_all`)
+- **Tool audit log** for observability
 - **Clean architecture** (DRY, KISS, composable)
 
 ## Stack
@@ -63,9 +65,14 @@ src/
   server.ts
 ```
 
+## Policy & Audit
+- `TOOL_POLICY_MODE=safe_only` allows only vetted tools.
+- `TOOL_POLICY_MODE=allow_all` allows all registered tools.
+- Tool calls are logged to `src/data/tool-audit.json`.
+
 ## Production Upgrade Path
 - Replace JSON store with Postgres/Redis
 - Add auth + tenant isolation
 - Add rate limiting + observability
-- Add tool policy engine + tool permissions
+- Expand tool policy to role/tenant-based permissions
 - Add eval/test suite for tool-calling reliability

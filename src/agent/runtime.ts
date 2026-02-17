@@ -4,6 +4,8 @@ import { env } from "../config/env.js";
 import type { MemoryManager } from "../memory/memory-manager.js";
 import type { SessionManager } from "../session/session-manager.js";
 import { buildToolkit } from "../tools/toolkit.js";
+import { appendToolAudit } from "../tools/audit.js";
+import { deniedToolMessage, isToolAllowed } from "../tools/policy.js";
 
 const SYSTEM_PROMPT = `You are an infra AI agent.
 Rules:
@@ -11,7 +13,8 @@ Rules:
 - Use memory_search for relevant past facts.
 - Save durable preferences/facts with memory_save when user asks to remember.
 - Use context_get if recent context is needed.
-- Never fabricate tool results.`;
+- Never fabricate tool results.
+- If a tool is blocked by policy, continue safely without it.`;
 
 export class AgentRuntime {
   private model = new ChatOpenAI({
@@ -57,10 +60,43 @@ export class AgentRuntime {
       }
 
       for (const call of ai.tool_calls) {
-        const tool = toolMap.get(call.name);
-        if (!tool) continue;
+        const toolName = call.name;
+        const tool = toolMap.get(toolName);
+        const callId = call.id ?? toolName;
+
+        if (!tool) {
+          messages.push(new ToolMessage({ tool_call_id: callId, content: `Unknown tool: ${toolName}` }));
+          continue;
+        }
+
+        const allowed = isToolAllowed(toolName);
+        if (!allowed) {
+          const blocked = deniedToolMessage(toolName);
+          await appendToolAudit({
+            at: new Date().toISOString(),
+            userId: input.userId,
+            sessionId: session.id,
+            toolName,
+            allowed,
+            args: call.args ?? {}
+          });
+          messages.push(new ToolMessage({ tool_call_id: callId, content: blocked }));
+          continue;
+        }
+
         const result = await (tool as any).invoke(call.args ?? {});
-        messages.push(new ToolMessage({ tool_call_id: call.id ?? call.name, content: String(result) }));
+        const resultText = String(result);
+        await appendToolAudit({
+          at: new Date().toISOString(),
+          userId: input.userId,
+          sessionId: session.id,
+          toolName,
+          allowed,
+          args: call.args ?? {},
+          resultPreview: resultText.slice(0, 280)
+        });
+
+        messages.push(new ToolMessage({ tool_call_id: callId, content: resultText }));
       }
     }
 
