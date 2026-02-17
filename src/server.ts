@@ -1,0 +1,41 @@
+import Fastify from "fastify";
+import { env } from "./config/env.js";
+import { MemoryManager } from "./memory/memory-manager.js";
+import { SessionManager } from "./session/session-manager.js";
+import { AgentRuntime } from "./agent/runtime.js";
+import { ChatRequestSchema } from "./api/schemas.js";
+
+const app = Fastify({ logger: true });
+
+const memory = new MemoryManager();
+const sessions = new SessionManager();
+const runtime = new AgentRuntime(memory, sessions);
+
+app.get("/health", async () => ({ ok: true, service: "agent-infra-langchain-ts" }));
+
+app.post("/v1/chat", async (req, reply) => {
+  const parsed = ChatRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return reply.code(400).send({ ok: false, error: parsed.error.flatten() });
+  }
+
+  try {
+    const result = await runtime.chat({
+      userId: parsed.data.userId,
+      message: parsed.data.message,
+      ...(parsed.data.sessionId ? { sessionId: parsed.data.sessionId } : {})
+    });
+    return { ok: true, ...result };
+  } catch (error) {
+    req.log.error({ err: error }, "chat_failed");
+    return reply.code(500).send({ ok: false, error: "Internal server error" });
+  }
+});
+
+async function bootstrap() {
+  await memory.init();
+  await sessions.init();
+  await app.listen({ port: env.PORT, host: "0.0.0.0" });
+}
+
+bootstrap();
