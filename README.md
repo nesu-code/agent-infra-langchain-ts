@@ -76,7 +76,15 @@ src/
 - `MEMORY_BACKEND=local|letta`
 - `RAG_BACKEND=none|llamaindex`
 
-> Current `letta` and `llamaindex` modules are scaffolds/adapters ready for SDK wiring.
+`letta` adapter expects:
+- `POST /v1/memory/upsert`
+- `POST /v1/memory/search`
+- `GET /health`
+
+`llamaindex` adapter expects:
+- `POST /v1/retrieve`
+
+If endpoint/API contracts differ in your deployment, edit adapter files only (core runtime unchanged).
 
 ## Production Upgrade Path
 - Replace JSON store with Postgres/Redis

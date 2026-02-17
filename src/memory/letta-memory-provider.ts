@@ -1,32 +1,77 @@
+import { randomUUID } from "node:crypto";
+import { env } from "../config/env.js";
+import { httpJson } from "../utils/http.js";
 import type { MemoryItem, MemorySearchResult } from "./types.js";
 import type { MemoryProvider } from "./provider.js";
 
-/**
- * Stub adapter for Letta (MemGPT).
- * Replace internals with Letta SDK/API calls.
- */
+type LettaMemoryRecord = {
+  id?: string;
+  userId: string;
+  text: string;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export class LettaMemoryProvider implements MemoryProvider {
+  private get enabled(): boolean {
+    return Boolean(env.LETTA_BASE_URL && env.LETTA_API_KEY);
+  }
+
   async init(): Promise<void> {
-    // TODO: initialize Letta client and health-check.
+    if (!this.enabled) return;
+    await httpJson<{ ok: boolean }>(`${env.LETTA_BASE_URL}/health`, {
+      headers: { Authorization: `Bearer ${env.LETTA_API_KEY}` }
+    });
   }
 
   async upsert(userId: string, text: string, tags: string[] = []): Promise<MemoryItem> {
+    if (!this.enabled) {
+      const now = new Date().toISOString();
+      return {
+        id: `letta-local-${randomUUID()}`,
+        userId,
+        text,
+        tags,
+        createdAt: now,
+        updatedAt: now
+      };
+    }
+
+    const created = await httpJson<LettaMemoryRecord>(`${env.LETTA_BASE_URL}/v1/memory/upsert`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.LETTA_API_KEY}` },
+      body: JSON.stringify({ userId, text, tags })
+    });
+
     const now = new Date().toISOString();
     return {
-      id: `letta-${Date.now()}`,
-      userId,
-      text,
-      tags,
-      createdAt: now,
-      updatedAt: now
+      id: created.id ?? `letta-${randomUUID()}`,
+      userId: created.userId,
+      text: created.text,
+      tags: created.tags ?? [],
+      createdAt: created.createdAt ?? now,
+      updatedAt: created.updatedAt ?? now
     };
   }
 
   listRecent(_userId: string, _limit = 10): MemoryItem[] {
+    // Keep sync API. Long-term path should call semanticSearch for Letta-backed retrieval.
     return [];
   }
 
-  async semanticSearch(_userId: string, _query: string, _limit = 5): Promise<MemorySearchResult[]> {
-    return [];
+  async semanticSearch(userId: string, query: string, limit = 5): Promise<MemorySearchResult[]> {
+    if (!this.enabled) return [];
+
+    const result = await httpJson<{ items: Array<MemoryItem & { score?: number }> }>(
+      `${env.LETTA_BASE_URL}/v1/memory/search`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.LETTA_API_KEY}` },
+        body: JSON.stringify({ userId, query, limit })
+      }
+    );
+
+    return (result.items ?? []).map((item) => ({ ...item, score: item.score ?? 0 }));
   }
 }
