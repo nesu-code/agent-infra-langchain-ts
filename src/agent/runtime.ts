@@ -1,6 +1,7 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { env } from "../config/env.js";
+import { buildSessionPersonaPrompt } from "../config/persona.js";
 import type { MemoryProvider } from "../memory/provider.js";
 import type { SessionProvider } from "../session/provider.js";
 import { buildToolkit } from "../tools/toolkit.js";
@@ -8,7 +9,7 @@ import { appendToolAudit } from "../tools/audit.js";
 import { deniedToolMessage, isToolAllowed } from "../tools/policy.js";
 import type { RetrieverProvider } from "./retriever-provider.js";
 
-const SYSTEM_PROMPT = `You are an infra AI agent.
+const BASE_SYSTEM_PROMPT = `You are an infra AI agent.
 Rules:
 - Be concise, actionable, and correct.
 - Use memory_search for relevant past facts.
@@ -16,6 +17,9 @@ Rules:
 - Use context_get if recent context is needed.
 - Never fabricate tool results.
 - If a tool is blocked by policy, continue safely without it.`;
+
+const SESSION_PERSONA_PROMPT = buildSessionPersonaPrompt();
+const SYSTEM_PROMPT = [BASE_SYSTEM_PROMPT, SESSION_PERSONA_PROMPT].filter(Boolean).join("\n\n");
 
 export class AgentRuntime {
   private model = new ChatOpenAI({

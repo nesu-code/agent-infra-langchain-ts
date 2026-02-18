@@ -12,6 +12,7 @@ Reusable AI Agent infrastructure for multi-project use.
 - **Structured tools + tool-calling**
 - **Tool policy guardrail** (`safe_only` / `allow_all`)
 - **Tool audit log** for observability
+- **Session persona loading** via `SOUL.md`, `CHARACTER.md`, `SKILL.md`
 - **Clean architecture** (DRY, KISS, composable)
 
 ## Stack
