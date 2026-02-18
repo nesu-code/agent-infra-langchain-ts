@@ -8,6 +8,7 @@ Reusable AI Agent infrastructure for multi-project use.
 - **Session per user** (persistent session history)
 - **Context management** (recent context window)
 - **Pluggable memory backend** (`local` / `letta`)
+- **RAG ingestion pipeline** (documents -> chunks -> query)
 - **Pluggable RAG backend** (`none` / `llamaindex`)
 - **Structured tools + tool-calling**
 - **Tool policy guardrail** (`safe_only` / `allow_all`)
@@ -46,6 +47,22 @@ Response:
   "message": "..."
 }
 ```
+
+### `POST /v1/rag/ingest`
+```json
+{
+  "tenantId": "naisu1",
+  "source": "docs/whitepaper.md",
+  "content": "...large text...",
+  "metadata": {"kind": "whitepaper"}
+}
+```
+
+### `GET /v1/rag/jobs/:jobId`
+Check ingestion job status.
+
+### `GET /v1/rag/search?tenantId=naisu1&query=intents&limit=5`
+Keyword chunk search (baseline retrieval path).
 
 ## Built-in Tools
 - `memory_save` → persist long-term memory
