@@ -1,20 +1,19 @@
 import { randomUUID } from "node:crypto";
-import { readJsonFile, writeJsonFile } from "../utils/json-store.js";
+import { getRedisClient, redisKey } from "../utils/redis.js";
 import type { Session, SessionMessage, SessionProvider } from "./provider.js";
 
-const PATH = "src/data/sessions.json";
 const MAX_MESSAGES = 40;
 
-export class SessionManager implements SessionProvider {
+export class RedisSessionManager implements SessionProvider {
   private sessions = new Map<string, Session>();
 
   async init(): Promise<void> {
-    const list = await readJsonFile<Session[]>(PATH, []);
-    for (const session of list) this.sessions.set(session.id, session);
+    await getRedisClient();
   }
 
-  private async persist(): Promise<void> {
-    await writeJsonFile(PATH, Array.from(this.sessions.values()));
+  private async persist(session: Session): Promise<void> {
+    const redis = await getRedisClient();
+    await redis.set(redisKey("session", session.id), JSON.stringify(session));
   }
 
   ensureSession(userId: string, sessionId?: string): Session {
@@ -30,18 +29,27 @@ export class SessionManager implements SessionProvider {
     };
 
     this.sessions.set(created.id, created);
+    void this.persist(created);
     return created;
   }
 
   async append(sessionId: string, role: SessionMessage["role"], content: string): Promise<Session> {
-    const session = this.sessions.get(sessionId);
-    if (!session) throw new Error("Session not found");
+    let session = this.sessions.get(sessionId);
+
+    if (!session) {
+      const redis = await getRedisClient();
+      const raw = await redis.get(redisKey("session", sessionId));
+      if (!raw) throw new Error("Session not found");
+      session = JSON.parse(raw) as Session;
+      this.sessions.set(session.id, session);
+    }
 
     session.messages.push({ role, content, createdAt: new Date().toISOString() });
     session.messages = session.messages.slice(-MAX_MESSAGES);
     session.updatedAt = new Date().toISOString();
+
     this.sessions.set(session.id, session);
-    await this.persist();
+    await this.persist(session);
     return session;
   }
 

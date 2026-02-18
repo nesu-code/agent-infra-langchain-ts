@@ -1,15 +1,15 @@
 import Fastify from "fastify";
 import { env } from "./config/env.js";
-import { SessionManager } from "./session/session-manager.js";
 import { AgentRuntime } from "./agent/runtime.js";
 import { ChatRequestSchema } from "./api/schemas.js";
 import { createMemoryProvider } from "./memory/factory.js";
 import { createRetrieverProvider } from "./agent/retriever-factory.js";
+import { createSessionProvider } from "./session/factory.js";
 
 const app = Fastify({ logger: true });
 
 const memory = createMemoryProvider();
-const sessions = new SessionManager();
+const sessions = createSessionProvider();
 const retriever = createRetrieverProvider();
 const runtime = new AgentRuntime(memory, sessions, retriever);
 

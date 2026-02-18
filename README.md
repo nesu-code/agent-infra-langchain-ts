@@ -73,8 +73,11 @@ src/
 - Tool calls are logged to `src/data/tool-audit.json`.
 
 ## Backend Switches
-- `MEMORY_BACKEND=local|letta`
+- `MEMORY_BACKEND=local|letta|redis`
+- `SESSION_BACKEND=local|redis`
 - `RAG_BACKEND=none|llamaindex`
+- `REDIS_URL=redis://localhost:6379`
+- `REDIS_PREFIX=agentinfra`
 
 `letta` adapter expects:
 - `POST /v1/memory/upsert`

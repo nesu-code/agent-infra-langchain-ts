@@ -2,7 +2,7 @@ import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/
 import { ChatOpenAI } from "@langchain/openai";
 import { env } from "../config/env.js";
 import type { MemoryProvider } from "../memory/provider.js";
-import type { SessionManager } from "../session/session-manager.js";
+import type { SessionProvider } from "../session/provider.js";
 import { buildToolkit } from "../tools/toolkit.js";
 import { appendToolAudit } from "../tools/audit.js";
 import { deniedToolMessage, isToolAllowed } from "../tools/policy.js";
@@ -26,7 +26,7 @@ export class AgentRuntime {
 
   constructor(
     private readonly memory: MemoryProvider,
-    private readonly sessions: SessionManager,
+    private readonly sessions: SessionProvider,
     private readonly retriever: RetrieverProvider
   ) {}
 
