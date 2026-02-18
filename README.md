@@ -107,6 +107,10 @@ src/
 
 If endpoint/API contracts differ in your deployment, edit adapter files only (core runtime unchanged).
 
+## CI / Security Workflows
+- `.github/workflows/ci.yml` → install, typecheck, build on push/PR
+- `.github/workflows/codeql.yml` → static security analysis (weekly + push/PR)
+
 ## Production Upgrade Path
 - Replace JSON store with Postgres/Redis
 - Add auth + tenant isolation
